@@ -62,11 +62,20 @@ class ImpactSeverity(str, Enum):
 
 class ApprovalState(str, Enum):
     """Safe Action Gate lifecycle states."""
-    NOT_REQUIRED = "NOT_REQUIRED"
+    PENDING = "PENDING"
     PENDING_APPROVAL = "PENDING_APPROVAL"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     EXPIRED = "EXPIRED"
+    NOT_REQUIRED = "NOT_REQUIRED"
+
+
+class ExecutionState(str, Enum):
+    """Execution status for proposed consequential actions."""
+    NOT_EXECUTED = "NOT_EXECUTED"
+    EXECUTING = "EXECUTING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
 
 
 class CommitmentStatus(str, Enum):
