@@ -11,6 +11,8 @@ import { QuickActions } from '../../components/QuickActions';
 import { EvidencePreviewCard } from '../../components/EvidencePreviewCard';
 import { TimelinePreview } from '../../components/TimelinePreview';
 import { SettingsEntry } from '../../components/SettingsEntry';
+import { TargetingModal } from '../../components/TargetingModal';
+import { resolveApiBaseUrl, getBackendTarget } from '../../config/targeting';
 import { TimelineEvent } from '../../contracts/timeline';
 import { DriftResult } from '../../contracts/reality';
 
@@ -21,11 +23,12 @@ interface AgentScreenProps {
 }
 
 export const AgentScreen: React.FC<AgentScreenProps> = ({
-  onOpenSettings = () => {},
+  onOpenSettings,
   onOpenEvidenceReplay,
   onOpenTimeline = () => {},
 }) => {
   const { state, statusMessage, activeDrift, transitionTo, setActiveDrift, resetToIdle } = useAgent();
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [mockTimeline] = useState<TimelineEvent[]>([
     {
       eventId: 'evt-101',
@@ -120,9 +123,15 @@ export const AgentScreen: React.FC<AgentScreenProps> = ({
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Top status & targeting bar */}
       <SettingsEntry
-        backendTarget="render"
-        resolvedUrl="https://nia-backend.onrender.com"
-        onPress={onOpenSettings}
+        backendTarget={getBackendTarget()}
+        resolvedUrl={resolveApiBaseUrl()}
+        onPress={() => {
+          if (onOpenSettings) {
+            onOpenSettings();
+          } else {
+            setSettingsModalVisible(true);
+          }
+        }}
       />
 
       {/* Main Title / Brand Tagline */}
@@ -172,6 +181,12 @@ export const AgentScreen: React.FC<AgentScreenProps> = ({
 
       {/* Recent Timeline Preview */}
       <TimelinePreview events={mockTimeline} onViewAll={onOpenTimeline} />
+
+      {/* Backend Targeting Configuration Modal */}
+      <TargetingModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+      />
     </ScrollView>
   );
 };
