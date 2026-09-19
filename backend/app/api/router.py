@@ -6,6 +6,7 @@ from app.api.actions import router as actions_router
 from app.api.timeline import router as timeline_router
 from app.api.digital_state import router as digital_state_router
 from app.api.office_kit import router as office_kit_router
+from app.api.settings import router as settings_router
 
 api_router = APIRouter(prefix=settings.API_V1_STR)
 
@@ -26,3 +27,6 @@ api_router.include_router(digital_state_router)
 
 # Mount Office Kit Reality Audit router
 api_router.include_router(office_kit_router)
+
+# Mount Settings & Diagnostics router
+api_router.include_router(settings_router)
