@@ -1,5 +1,9 @@
-/**
- * Shared UI Components
- * Atomic primitives (NIA Orb, buttons, cards, modals) will be populated in Prompt 3.
- */
-export const COMPONENTS_VERSION = '0.1.0';
+export * from './AppShell';
+export * from './NIAOrb';
+export * from './AgentStateIndicator';
+export * from './VoiceButton';
+export * from './TextInput';
+export * from './QuickActions';
+export * from './EvidencePreviewCard';
+export * from './TimelinePreview';
+export * from './SettingsEntry';
