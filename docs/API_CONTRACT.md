@@ -1,45 +1,50 @@
-# NIA — API Contract Specification (v1)
+# NIA — Complete REST API Specification (v1)
+> **Authoritative Contract for Frontend-Backend Communication in NIA**
 
-This document specifies the REST API contract between the phone frontend (React Native + Expo) and the backend (FastAPI). All endpoints are versioned under `/api/v1`.
-
----
-
-## 1. Endpoints Overview
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/wakeup` | Ingests a wake-up event from one of the 4 triggers |
-| `POST` | `/api/v1/reality/check` | Evaluates a physical observation against digital state for Reality Drift |
-| `GET` | `/api/v1/reality/{reality_id}/impact` | Computes downstream impacted entities |
-| `GET` | `/api/v1/evidence/{evidence_id}` | Retrieves full evidence bundle and provenance data |
-| `POST` | `/api/v1/actions/propose` | Proposes a safe action based on detected drift |
-| `POST` | `/api/v1/actions/{action_id}/approve` | **Safe Action Gate:** Approves and executes a proposed action |
-| `POST` | `/api/v1/actions/{action_id}/reject` | Rejects a proposed action with reason |
-| `GET` | `/api/v1/timeline` | Retrieves chronological Reality Timeline events |
-| `POST` | `/api/v1/commitments/extract` | Extracts structured commitments from voice transcript (Bhupathi hook) |
+All endpoints are versioned under the base prefix `/api/v1`.
 
 ---
 
-## 2. Detailed Request / Response Payloads
+## 📑 1. Global Route Table
 
-### 2.1 Reality Check (`POST /api/v1/reality/check`)
+| Category | Method | Endpoint | Description |
+| :--- | :--- | :--- | :--- |
+| **System** | `GET` | `/health` | Application health and timestamp |
+| | `GET` | `/ready` | Subsystem readiness probe |
+| **Reality (VEYRA X)** | `POST` | `/api/v1/reality/check` | Ingests observation and evaluates Reality Drift |
+| | `GET` | `/api/v1/reality/{reality_id}/impact` | Computes cascading downstream affected entities |
+| **Safe Action Gate** | `POST` | `/api/v1/actions/propose` | Proposes non-destructive remediation action |
+| | `POST` | `/api/v1/actions/{action_id}/approve` | Explicit human approval and execution |
+| | `POST` | `/api/v1/actions/{action_id}/reject` | Explicit human rejection with reason |
+| **Reality Timeline** | `GET` | `/api/v1/timeline` | Retrieves chronological immutable audit log |
+| **Digital State** | `GET` | `/api/v1/digital-state/events` | Retrieves upcoming calendar ground truth events |
+| | `POST` | `/api/v1/digital-state/sync` | Force synchronizes ground truth from adapters |
+| **Office Kit** | `POST` | `/api/v1/office-kit/generate-audit` | Generates 10-section Reality Audit Report |
+| **Settings** | `GET` | `/api/v1/settings` | Retrieves current user configuration |
+| | `POST` | `/api/v1/settings` | Updates configuration with invariant checks |
+| | `GET` | `/api/v1/settings/diagnostics` | Retrieves safe diagnostics (zero secrets) |
+| | `POST` | `/api/v1/settings/delete-evidence` | Purges local device evidence cache |
+| **Hackathon Demo** | `GET` | `/api/v1/demo/state` | Retrieves active state across the 17 steps |
+| | `POST` | `/api/v1/demo/reset` | Resets demo to Step 1 and restores ground truth |
+| | `POST` | `/api/v1/demo/step-forward` | Advances demo scenario by one step |
+| | `POST` | `/api/v1/demo/step-backward` | Rewinds demo scenario by one step |
+| | `POST` | `/api/v1/demo/jump/{step}` | Jumps directly to any step (1..17) |
+| | `POST` | `/api/v1/demo/run-e2e` | Executes complete end-to-end integration flow |
+
+---
+
+## 📡 2. Endpoint Payloads & Schemas
+
+### 2.1 Reality Drift Evaluation
+`POST /api/v1/reality/check`
 
 **Request:**
 ```json
 {
   "entity": "Final Presentation",
-  "observation": {
-    "source": "ocr",
-    "rawText": "Notice: Final Presentations moved to Room 302 due to maintenance",
-    "extractedLocation": "Room 302",
-    "timestamp": "2026-09-19T09:15:00Z",
-    "confidence": 0.94,
-    "mediaRef": "file:///storage/emulated/0/DCIM/notice_01.jpg"
-  },
-  "currentContext": {
-    "userLocation": "Engineering Hallway",
-    "activeSessionId": "sess-4029"
-  }
+  "rawText": "Notice: Departmental Presentations moved to Room 302 due to AC repair.",
+  "extractedLocation": "Room 302",
+  "source": "ocr"
 }
 ```
 
@@ -61,100 +66,25 @@ This document specifies the REST API contract between the phone frontend (React 
   "state": "REALITY_DRIFT",
   "driftType": "LOCATION_CHANGED",
   "confidence": 0.94,
-  "explanation": "Digital calendar specifies Room 204, but physical signage confirms relocation to Room 302.",
   "evidenceRefs": ["ev-calendar-1", "ev-ocr-1"],
-  "impactRefs": ["impact-reminder-1", "impact-alarm-1"],
+  "impactRefs": ["imp-001", "imp-002"],
   "proposedActionRef": "act-9901",
   "approvalRequired": true,
-  "evaluatedAt": "2026-09-19T09:15:02Z"
+  "explanation": "Digital calendar specifies Room 204, but physical camera OCR observed Room 302."
 }
 ```
 
 ---
 
-### 2.2 Evidence Bundle (`GET /api/v1/evidence/{evidence_id}`)
-
-**Response:**
-```json
-{
-  "evidenceId": "ev-ocr-1",
-  "source": "ocr",
-  "snippet": "Presentations moved to Room 302",
-  "confidence": 0.94,
-  "capturedAt": "2026-09-19T09:15:00Z",
-  "metadata": {
-    "boundingBox": {"x": 120, "y": 340, "width": 640, "height": 80},
-    "deviceModel": "iQOO Neo",
-    "sensorType": "camera_back"
-  }
-}
-```
-
----
-
-### 2.3 Impact Analysis (`GET /api/v1/reality/{reality_id}/impact`)
-
-**Response:**
-```json
-{
-  "realityId": "real-8821",
-  "impacts": [
-    {
-      "impactId": "impact-reminder-1",
-      "targetType": "reminder",
-      "targetId": "rem-201",
-      "description": "Reminder 'Check Room 204 projector' is now invalid.",
-      "severity": "HIGH",
-      "suggestedRemediation": "Update reminder destination to Room 302"
-    },
-    {
-      "impactId": "impact-alarm-1",
-      "targetType": "alarm",
-      "targetId": "alm-405",
-      "description": "Travel buffer may need adjustment (+3 minutes to 3rd floor).",
-      "severity": "MEDIUM",
-      "suggestedRemediation": "Advance alarm by 5 minutes"
-    }
-  ]
-}
-```
-
----
-
-### 2.4 Action Proposal (`POST /api/v1/actions/propose`)
-
-**Response:**
-```json
-{
-  "actionId": "act-9901",
-  "realityId": "real-8821",
-  "title": "Update Final Presentation Location",
-  "description": "Change calendar location from Room 204 to Room 302 and adjust associated reminders.",
-  "beforeState": {
-    "calendarLocation": "Room 204",
-    "reminderNotes": "Room 204 projector check"
-  },
-  "afterState": {
-    "calendarLocation": "Room 302",
-    "reminderNotes": "Room 302 projector check"
-  },
-  "approvalState": "PENDING_APPROVAL",
-  "approvalRequired": true,
-  "evidenceRefs": ["ev-calendar-1", "ev-ocr-1"],
-  "createdAt": "2026-09-19T09:15:03Z"
-}
-```
-
----
-
-### 2.5 Action Approval — Safe Action Gate (`POST /api/v1/actions/{action_id}/approve`)
+### 2.2 Safe Action Gate
+`POST /api/v1/actions/{action_id}/approve`
 
 **Request:**
 ```json
 {
   "approvedBy": "user",
-  "approvalMethod": "biometric_tap",
-  "notes": "Confirmed with hallway signage"
+  "approvalMethod": "button_tap",
+  "notes": "Verified against hallway notice"
 }
 ```
 
@@ -163,90 +93,89 @@ This document specifies the REST API contract between the phone frontend (React 
 {
   "actionId": "act-9901",
   "approvalState": "APPROVED",
-  "executionStatus": "EXECUTED_SUCCESSFULLY",
-  "executedAt": "2026-09-19T09:15:20Z",
-  "timelineEventId": "evt-7719",
-  "auditSummary": "Calendar event 'Final Presentation' location updated from Room 204 to Room 302."
+  "executionState": "SUCCEEDED",
+  "executionStatus": "EXECUTION_SUCCEEDED",
+  "executedAt": "2026-09-19T09:16:02Z",
+  "auditSummary": "Updated reminder location to Room 302 upon explicit user approval."
 }
 ```
 
 ---
 
-### 2.6 Reality Timeline (`GET /api/v1/timeline`)
+### 2.3 Office Kit Reality Audit Export
+`POST /api/v1/office-kit/generate-audit`
+
+**Request:**
+```json
+{
+  "session_id": "sess-hackathon-2026-demo"
+}
+```
 
 **Response:**
 ```json
 {
-  "events": [
-    {
-      "eventId": "evt-7719",
-      "timestamp": "2026-09-19T09:15:20Z",
-      "eventType": "ACTION_EXECUTED",
-      "title": "Room 204 -> Room 302 Location Updated",
-      "entity": "Final Presentation",
-      "evidenceRefs": ["ev-ocr-1"],
-      "actor": "user"
+  "report": {
+    "title": "NIA Reality Audit Report",
+    "session": {
+      "session_id": "sess-hackathon-2026-demo",
+      "timestamp": "2026-09-19T09:16:05Z",
+      "device": "iQOO Neo / Android Prototype",
+      "runtime_mode": "On-Device VEYRA X Reality Intelligence"
     },
-    {
-      "eventId": "evt-7718",
-      "timestamp": "2026-09-19T09:15:02Z",
-      "eventType": "DRIFT_DETECTED",
-      "title": "Location Contradiction Flagged",
+    "what_nia_knew": {
       "entity": "Final Presentation",
-      "evidenceRefs": ["ev-calendar-1", "ev-ocr-1"],
-      "actor": "veyra_x"
-    }
-  ]
+      "location": "Room 204",
+      "scheduled_time": "09:00 AM",
+      "source": "Google Calendar (Synchronized)"
+    },
+    "what_was_observed": {
+      "location": "Room 302",
+      "source": "Camera / Notice Board OCR",
+      "raw_snippet": "Presentations moved to Room 302."
+    },
+    "reality_drift": {
+      "state": "REALITY_DRIFT",
+      "drift_type": "LOCATION_CHANGED",
+      "confidence": 0.96
+    },
+    "evidence": [ ... ],
+    "impact": [ ... ],
+    "proposed_action": { ... },
+    "approval": { "approved_by": "user", "approval_state": "APPROVED" },
+    "result": { "status": "SUCCEEDED" },
+    "timeline": [ ... ]
+  },
+  "markdown": "# NIA REALITY AUDIT REPORT\n\n## 1. SESSION\n..."
 }
 ```
 
 ---
 
-### 2.7 Wake-Up Event (`POST /api/v1/wakeup`)
+### 2.4 Deterministic Hackathon Demo Mode
+`POST /api/v1/demo/run-e2e`
 
-**Request:**
+**Response:**
 ```json
 {
-  "triggerType": "VOICE_HOTWORD",
-  "timestamp": "2026-09-19T09:14:55Z",
-  "payload": {
-    "transcription": "Hey NIA, check my presentation room",
-    "confidence": 0.98
+  "status": "E2E_DEMO_COMPLETED_SUCCESSFULLY",
+  "drift_result": {
+    "state": "REALITY_DRIFT",
+    "drift_type": "LOCATION_CHANGED",
+    "confidence": 0.94
+  },
+  "action": {
+    "action_id": "act-demo-room-update-001",
+    "approval_state": "APPROVED",
+    "execution_state": "SUCCEEDED"
+  },
+  "timeline_event_id": "evt-exec-f819",
+  "audit_report_session": "sess-hackathon-2026-demo",
+  "state": {
+    "step": 17,
+    "total_steps": 17,
+    "current_effective_location": "Room 302",
+    "audit_exported": true
   }
-}
-```
-
-**Response:**
-```json
-{
-  "sessionId": "sess-4029",
-  "agentState": "LISTENING_AND_EVALUATING",
-  "promptMessage": "Checking current presentation schedule and live notices..."
-}
-```
-
----
-
-### 2.8 Commitment Integration (`POST /api/v1/commitments/extract`)
-
-**Request:**
-```json
-{
-  "transcript": "I promised Prof. Sharma I would submit the revised slides by 5 PM today.",
-  "recordedAt": "2026-09-19T10:00:00Z",
-  "sourceAudioRef": "audio-memo-104.m4a"
-}
-```
-
-**Response:**
-```json
-{
-  "commitmentId": "cmt-5501",
-  "title": "Submit revised slides to Prof. Sharma",
-  "counterparty": "Prof. Sharma",
-  "deadline": "2026-09-19T17:00:00Z",
-  "confidence": 0.91,
-  "status": "OPEN",
-  "evidenceRef": "audio-memo-104.m4a"
 }
 ```

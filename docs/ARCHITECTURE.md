@@ -1,50 +1,66 @@
-# NIA — System Architecture
+# NIA — System Architecture Specification
+> **Comprehensive System Topology, Subsystems & Inter-Process Communication**
 
-## 1. High-Level System Architecture
+---
 
-NIA is architected as a **Phone-First Distributed Intelligence System**. Compute is split strategically between the mobile device (iQOO phone running React Native + Expo) and a lightweight cloud/local backend (FastAPI).
+## 🏛️ 1. High-Level System Topology
+
+NIA is architected as a **Phone-First Distributed Intelligence System**. Compute is strategically partitioned between the mobile device (iQOO phone running React Native + Expo) and a lightweight cloud/local backend (FastAPI).
 
 ```mermaid
 flowchart TB
     subgraph MobileDevice["Phone Native Intelligence Layer (iQOO Phone / Expo)"]
         Sensors[Camera / Audio / Gestures]
         WakeUp[WakeUp Orchestrator\n(Voice / Orb / 3-Finger / App)]
-        Orb[NIA Orb UI Component]
+        Orb[NIA Animated Cinematic Orb]
+        VoiceShell[Voice Shell & IntentRouter]
+        MindPulse[Mind Pulse 3-Finger Screen Inspector]
+        SafeGate[Safe Action Gate Modal UI]
+        DemoHUD[17-Step Deterministic Demo HUD]
+        SettingsUI[Settings, Privacy & Accessibility]
         Adapters[Native Capability Adapters\n(ML Kit / MediaProjection / Fallbacks)]
         LocalEngine[Local Perception & Normalizer]
-        ActionGate[Safe Action Gate Modal UI]
     end
 
     subgraph BackendCore["Lightweight Orchestration Layer (FastAPI)"]
-        API[FastAPI Gateway]
+        API[FastAPI Gateway (/api/v1)]
         subgraph VeyraX["VEYRA X Engine"]
             Norm[Normalization Service]
-            Truth[Truth & Drift Detector]
-            Evid[Evidence Bundler]
+            Truth[Truth & Grounding Detector]
+            Drift[Symbolic Drift Engine]
+            Evid[Evidence Provenance Bundler]
             Graph[Impact Graph Traversal]
-            ActionProp[Action Proposer]
+            ActionProp[Safe Action Proposer]
         end
         StateRepo[Digital State Repository\n(Calendar, Reminders, Alarms)]
         TimelineRepo[Reality Timeline Repository]
-        BhupathiModule[Commitment Intelligence Module\n(Bhupathi 40% Isolated)]
+        OfficeKit[Office Kit 10-Section Audit Generator]
+        SettingsMgr[Settings & Zero-Secret Diagnostics]
+        DemoCtrl[Demo Scenario Controller & Fixtures]
+        BhupathiModule[Commitment Intelligence Module\n(Bhupathi 40% Isolated Extension)]
     end
 
     Sensors --> Adapters
     Adapters --> WakeUp
     WakeUp --> Orb
+    Sensors --> VoiceShell
+    Sensors --> MindPulse
     Adapters --> LocalEngine
     LocalEngine -->|Observations + Context| API
-    API --> Norm --> Truth --> Evid --> Graph --> ActionProp
+    API --> Norm --> Truth --> Drift --> Evid --> Graph --> ActionProp
     Truth <--> StateRepo
-    ActionProp -->|ProposedAction (approvalRequired: true)| ActionGate
-    ActionGate -->|User Approves| API
+    ActionProp -->|ProposedAction (approvalRequired: true)| SafeGate
+    SafeGate -->|Explicit Human Approval| API
     API -->|Execute Safe Mutation| StateRepo
     API -->|Append Audit Event| TimelineRepo
+    API --> OfficeKit
+    API --> SettingsMgr
+    API --> DemoCtrl
 ```
 
 ---
 
-## 2. The VEYRA X Reality Pipeline
+## ⚙️ 2. The 8 Stages of VEYRA X
 
 VEYRA X is the internal deterministic reality engine. It processes events strictly across 8 consecutive stages:
 
@@ -67,7 +83,7 @@ sequenceDiagram
     E->>L: Construct immutable evidence bundle (snippet, confidence, refs)
     L->>I: Record drift detected event on reality timeline
     I->>A: Compute affected downstream entities (reminders, alarms, commitments)
-    A-->>User: Propose Safe Action (Pending explicit approval)
+    A-->>User: Propose Safe Action (Pending explicit human approval)
 ```
 
 1. **PERCEPTION:** Ingests raw inputs from digital sources (Google Calendar mock, local device storage) and physical sources (camera frames, OCR text, voice transcriptions).
@@ -81,22 +97,36 @@ sequenceDiagram
 
 ---
 
-## 3. Frontend / Backend Boundary & Responsibilities
+## 📱 3. Subsystem Breakdown
 
-| Responsibility | Frontend (React Native + Expo) | Backend (FastAPI) |
-| :--- | :--- | :--- |
-| **User Interaction** | NIA Orb, Mind Pulse 3-finger swipe, Safe Action Gate UI, Evidence Replay viewer | None (Headless API) |
-| **Hardware & Sensors** | Camera, microphone, gesture recognizers, haptic feedback | None |
-| **Local Perception** | On-device OCR (ML Kit in Dev Build; mock adapter in Expo Go), audio recording | None |
-| **Reality Intelligence** | Client-side optimistic cache, UI state transitions | VEYRA X pipeline (Normalization, Truth, Drift, Impact, Action Proposal) |
-| **State Storage** | Local AsyncStorage / SecureStore for session & offline cache | Repository layer for Digital State, Evidence Items, Timeline, and Commitments |
-| **Action Execution** | Renders approval UI, captures biometric/touch approval | Validates signature/approval token, executes mutation, logs to timeline |
+### 3.1 Voice Interaction Shell (`frontend/src/features/voice/`)
+- **Pipeline:** Wake Word / Mic $\to$ `STTProvider` $\to$ Transcript $\to$ `IntentRouter` $\to$ Orchestrator.
+- **Intents Supported:** `NEXT_MEETING`, `VERIFY_INFORMATION`, `WHAT_CHANGED`, `WHY`, `WHAT_AFFECTS`, `FIX_IT`, `CANCEL`, `HELP`.
+- **Text/Voice Parity:** The same intent router processes typed text commands for testing environments without working microphones.
+- **Bhupathi Isolation Invariant:** Queries matching "commitment" or "promise" route strictly to the isolated `COMMITMENT_EXTRACT` extension point with zero competing commitment schemas.
+
+### 3.2 Mind Pulse Screen Verification (`frontend/src/features/mindPulse/`)
+- **Concept:** 3-finger upward swipe $\to$ capture active screen $\to$ extract visible entities $\to$ compare against NIA ground truth $\to$ render confirmation or drift badge.
+- **Sandbox vs. Native:** In Expo Go, simulated screen content verifies the UX. In native builds, Android `AccessibilityService` or `MediaProjection` extracts live view hierarchy text.
+
+### 3.3 Office Kit & Reality Audit (`backend/app/modules/office_kit/`)
+- **Principle:** Phone is the primary capture device; laptop is an extension for review and export.
+- **10-Section Report:** Generates portable Markdown/PDF containing session details, ground truth, observation, drift classification, evidence bundle, impact cascade, safe action, user approval, execution result, and timeline.
+
+### 3.4 Settings, Privacy & Diagnostics (`backend/app/modules/settings/`)
+- **100% On-Device Local Processing:** Evidence, images, and audio reside on-device. Cloud upload policy defaults to `NEVER`.
+- **Zero-Secret Diagnostics:** System diagnostics introspection returns backend target, model status, and capability info without leaking API keys or credentials.
+- **Schema Migration Versioning:** Automatically migrates legacy settings states without corrupting user preferences.
+
+### 3.5 17-Step Deterministic Demo System (`backend/app/modules/demo/`)
+- **Single Source of Truth:** Centralized fixtures prevent scattered hardcoded strings.
+- **Controller:** Supports step-forward, step-backward, direct jumping (steps 1..17), autoplay, and complete scenario reset.
 
 ---
 
-## 4. Adapter Strategy: Expo Go vs. Development Build (APK)
+## 🔌 4. Adapter Strategy: Expo Go vs. Development Build (APK)
 
-Because React Native allows two distinct execution models, NIA utilizes the **Port-and-Adapter** pattern to guarantee continuous developer productivity without faking production behavior:
+Because React Native allows two distinct execution models, NIA utilizes the **Port-and-Adapter** pattern:
 
 ```mermaid
 flowchart TD
@@ -137,31 +167,3 @@ flowchart TD
     IGestureAdapter -.->|If Expo Go| InAppGesture
     IGestureAdapter -.->|If Native Build| SystemGesture
 ```
-
-* **Expo Go:** Used for instant UI feedback, styling, component testing, navigation, and API integration. Uses explicit simulation fixtures clearly tagged as `[SIMULATED]`.
-* **Android Dev Build / APK:** Used on the iQOO phone for hardware-accelerated local OCR, background accessibility triggers, and hotword listening.
-
----
-
-## 5. Request / Response Lifecycle
-
-1. **Client Ingestion:** User captures an image or audio memo on the phone.
-2. **Local Perception:** Local adapter extracts raw text and metadata.
-3. **Dispatch:** Frontend calls `POST /api/v1/reality/check` with `PhysicalObservation` and current user context.
-4. **Backend Processing:**
-   - Normalizes observation into structured facts.
-   - Fetches active digital records matching entity.
-   - VEYRA X evaluates drift. If drift exists:
-     - Assembles `EvidenceItem` with cryptographic ID.
-     - Computes downstream `ImpactItem` records.
-     - Formulates `ProposedAction` marked `approvalRequired = True`.
-5. **Client Rendering:**
-   - NIA Orb transitions to `REALITY_DRIFT` alert state (amber/cyan pulse).
-   - Safe Action Gate modal renders the proposal with Evidence Replay.
-6. **User Decision:**
-   - User reviews evidence and taps **Approve**.
-   - Client sends `POST /api/v1/actions/{action_id}/approve`.
-7. **Execution & Audit:**
-   - Backend updates digital state.
-   - Timeline appends `ACTION_EXECUTED` event.
-   - Response confirms new ground truth.

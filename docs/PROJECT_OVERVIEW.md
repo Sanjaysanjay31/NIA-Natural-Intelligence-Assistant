@@ -1,4 +1,7 @@
 # NIA — Project Overview & Product Contract
+> **Reality-Verified Personal Intelligence Layer | iQOO Hackathon 2026**
+
+---
 
 ## 1. Product Mission
 
