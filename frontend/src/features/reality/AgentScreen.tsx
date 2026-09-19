@@ -16,6 +16,7 @@ import { SafeActionGateModal } from '../actions/SafeActionGateModal';
 import { CapabilityStatusCard } from '../../components/CapabilityStatusCard';
 import { SettingsEntry } from '../../components/SettingsEntry';
 import { TargetingModal } from '../../components/TargetingModal';
+import { MindPulseOverlay, MindPulseGestureDetector } from '../mindPulse';
 import { DriftResult } from '../../contracts/reality';
 
 interface AgentScreenProps {
@@ -78,7 +79,7 @@ export const AgentScreen: React.FC<AgentScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <MindPulseGestureDetector style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -270,7 +271,10 @@ export const AgentScreen: React.FC<AgentScreenProps> = ({
         visible={settingsModalVisible}
         onClose={() => setSettingsModalVisible(false)}
       />
-    </View>
+
+      {/* Mind Pulse Real-Time Overlay */}
+      <MindPulseOverlay />
+    </MindPulseGestureDetector>
   );
 };
 
