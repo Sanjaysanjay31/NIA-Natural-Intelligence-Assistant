@@ -340,12 +340,12 @@ To keep the module completely isolated, Bhupathi's work avoided touching any cor
 
 ## 17. Merge Package Instructions for Sanjay
 
-When merging `feature/bhupathi-commitment-intelligence` into `main`:
+When merging `bhupathi` into `main`:
 
 ```bash
 # 1. Fetch and checkout branch
 git fetch origin
-git checkout feature/bhupathi-commitment-intelligence
+git checkout bhupathi
 
 # 2. Run backend test suite
 .venv/Scripts/pytest tests/backend
@@ -355,7 +355,7 @@ npm --prefix frontend run typecheck
 
 # 4. Merge into main without fast-forward if desired
 git checkout main
-git merge --no-ff feature/bhupathi-commitment-intelligence -m "merge: incorporate Bhupathi commitment intelligence module"
+git merge --no-ff bhupathi -m "merge: incorporate Bhupathi commitment intelligence module"
 ```
 
 ### Pre-Merge Invariant Checklist Verified:
