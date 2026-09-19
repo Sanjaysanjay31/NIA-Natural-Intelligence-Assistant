@@ -160,3 +160,119 @@ def test_all_commitment_schemas_instantiation():
         target_person="Sanjay",
     )
     assert prop.proposal_id == "prop-01"
+
+
+# --- CommitmentExtractor Unit Tests ---
+
+from app.modules.commitments.extractor import CommitmentExtractor
+
+
+def test_extractor_positive_first_person_with_deadline():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(
+        transcript="I will submit the presentation slides by Friday.",
+        source=CommitmentSource.VOICE_MEMO,
+        current_user_name="Bhupathi",
+    )
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    cmt = res.commitments[0]
+    assert cmt.owner == "Bhupathi"
+    assert "Submit the presentation slides" in cmt.action
+    assert cmt.deadline is not None
+    assert "Friday" in cmt.deadline
+    assert cmt.confidence >= 0.85
+    assert cmt.status == CommitmentStatus.PENDING
+    assert cmt.evidence is not None
+    assert "submit the presentation slides" in cmt.evidence.raw_quote.lower()
+
+
+def test_extractor_positive_third_person_with_deadline():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(
+        transcript="Sanjay will submit the slides by Friday.",
+        source=CommitmentSource.MEETING_TRANSCRIPT,
+    )
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    cmt = res.commitments[0]
+    assert cmt.owner == "Sanjay"
+    assert "Submit the slides" in cmt.action
+    assert cmt.deadline is not None
+    assert "Friday" in cmt.deadline
+    assert cmt.confidence >= 0.85
+
+
+def test_extractor_positive_without_deadline():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(
+        transcript="I will prepare the deployment checklist.",
+        source=CommitmentSource.VOICE_MEMO,
+    )
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    cmt = res.commitments[0]
+    assert cmt.owner == "current_user"
+    assert "Prepare the deployment checklist" in cmt.action
+    # Deadline must NOT be fabricated!
+    assert cmt.deadline is None
+
+
+def test_extractor_positive_compound_multiple_commitments():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(
+        transcript="I'll submit the slides Friday and send the report Monday.",
+        source=CommitmentSource.VOICE_MEMO,
+    )
+    res = extractor.extract(req)
+    assert res.extraction_count == 2
+    c1, c2 = res.commitments
+    assert "Submit the slides" in c1.action
+    assert "Friday" in c1.deadline
+    assert "Send the report" in c2.action
+    assert "Monday" in c2.deadline
+
+
+def test_extractor_positive_dialog_with_speaker_tag():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(
+        transcript="Priya: I will review the architecture document by tomorrow at 5 PM.",
+        source=CommitmentSource.MEETING_TRANSCRIPT,
+    )
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    cmt = res.commitments[0]
+    assert cmt.owner == "Priya"
+    assert "Review the architecture document" in cmt.action
+    assert "tomorrow" in cmt.deadline.lower()
+
+
+def test_extractor_negative_questions_disqualified():
+    extractor = CommitmentExtractor()
+    # Question with question mark
+    res1 = extractor.extract(CommitmentExtractionRequest(transcript="Did you submit the slides?"))
+    assert res1.extraction_count == 0
+
+    # Question starting with auxiliary verb
+    res2 = extractor.extract(CommitmentExtractionRequest(transcript="Can you send it?"))
+    assert res2.extraction_count == 0
+
+
+def test_extractor_negative_speculative_and_collective_disqualified():
+    extractor = CommitmentExtractor()
+    # "We should" is suggestive, not an individual binding commitment
+    res1 = extractor.extract(CommitmentExtractionRequest(transcript="We should probably finish this."))
+    assert res1.extraction_count == 0
+
+    res2 = extractor.extract(CommitmentExtractionRequest(transcript="Maybe we could review the deck later."))
+    assert res2.extraction_count == 0
+
+
+def test_extractor_negative_past_tense_disqualified():
+    extractor = CommitmentExtractor()
+    res1 = extractor.extract(CommitmentExtractionRequest(transcript="The slides were submitted yesterday."))
+    assert res1.extraction_count == 0
+
+    res2 = extractor.extract(CommitmentExtractionRequest(transcript="I sent the email already."))
+    assert res2.extraction_count == 0
+

@@ -14,6 +14,7 @@ from .schemas import (
     CommitmentLinkRequest,
     FollowUpProposal,
 )
+from .extractor import CommitmentExtractor
 
 __all__ = [
     "CommitmentStatus",
@@ -25,4 +26,5 @@ __all__ = [
     "CommitmentUpdate",
     "CommitmentLinkRequest",
     "FollowUpProposal",
+    "CommitmentExtractor",
 ]
