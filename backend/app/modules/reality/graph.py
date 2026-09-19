@@ -23,6 +23,11 @@ class RealityGraph:
         self.edges: Dict[str, List[tuple[str, str]]] = {}
         self._seed_default_graph()
 
+    def reset(self):
+        self.nodes.clear()
+        self.edges.clear()
+        self._seed_default_graph()
+
     def add_node(self, node_id: str, node_type: str, label: str, properties: Optional[Dict[str, Any]] = None) -> GraphNode:
         node = GraphNode(node_id, node_type, label, properties)
         self.nodes[node_id] = node

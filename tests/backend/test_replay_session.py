@@ -2,23 +2,15 @@ import pytest
 from starlette.testclient import TestClient
 from datetime import datetime, timezone
 from app.main import app
+from app.modules.reality.graph import reality_graph
 
 client = TestClient(app)
 
 
 def test_complete_room_204_to_302_replay_session():
-    """
-    Verification for Prompt 7:
-    Complete Room 204 -> Room 302 replay loop in one session:
-    1. Digital calendar known: Room 204
-    2. Physical notice observed: Room 302
-    3. Reality check returns REALITY_DRIFT / LOCATION_CHANGED with ProposedAction
-    4. Fetch impact graph: downstream reminder, alarm, commitment
-    5. Fetch evidence bundle proving notice
-    6. Safe Action Gate approval: POST /api/v1/actions/{action_id}/approve
-    7. Verify execution status and audit summary
-    8. Check Reality Timeline for audit trail
-    """
+    # Ensure fresh baseline reality graph state
+    reality_graph.reset()
+
     # 1 & 2 & 3: Trigger Reality Check
     check_payload = {
         "entity": "Final Presentation",
