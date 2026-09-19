@@ -1,0 +1,83 @@
+# Environment and Secrets (Strictly Forbidden from commits)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+env/
+ENV/
+
+# Node / React Native / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Fastlane / Mobile Native builds
+*.ipa
+*.apk
+*.aab
+android/.gradle/
+android/app/build/
+android/build/
+ios/Pods/
+ios/build/
+
+# Local AI Models and Weights (Strictly Prohibited from commits)
+models/
+weights/
+*.onnx
+*.tflite
+*.bin
+*.pt
+*.pth
+*.gguf
+*.safetensors
+*.tar.gz
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
