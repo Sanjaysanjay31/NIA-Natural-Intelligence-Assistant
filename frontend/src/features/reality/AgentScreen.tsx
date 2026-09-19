@@ -14,6 +14,7 @@ import { NIAOrb } from '../../components/NIAOrb';
 import { AgentStateIndicator } from '../../components/AgentStateIndicator';
 import { SafeActionGateModal } from '../actions/SafeActionGateModal';
 import { CapabilityStatusCard } from '../../components/CapabilityStatusCard';
+import { LocalAiDiagnosticsCard } from '../../components/LocalAiDiagnosticsCard';
 import { SettingsEntry } from '../../components/SettingsEntry';
 import { TargetingModal } from '../../components/TargetingModal';
 import { MindPulseOverlay, MindPulseGestureDetector } from '../mindPulse';
@@ -247,6 +248,9 @@ export const AgentScreen: React.FC<AgentScreenProps> = ({
 
         {/* Developer Trigger Capabilities (Prompt 11) */}
         <CapabilityStatusCard />
+
+        {/* Local AI Runtime Diagnostics (Prompt 14) */}
+        <LocalAiDiagnosticsCard />
       </ScrollView>
 
       {/* Safe Action Gate Modal */}
