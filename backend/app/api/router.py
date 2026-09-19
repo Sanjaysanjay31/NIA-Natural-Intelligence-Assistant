@@ -4,6 +4,7 @@ from app.api.health import router as health_router
 from app.api.reality import router as reality_router
 from app.api.actions import router as actions_router
 from app.api.timeline import router as timeline_router
+from app.api.digital_state import router as digital_state_router
 
 api_router = APIRouter(prefix=settings.API_V1_STR)
 
@@ -18,3 +19,6 @@ api_router.include_router(actions_router)
 
 # Mount Reality Timeline router
 api_router.include_router(timeline_router)
+
+# Mount Digital State Ground Truth router
+api_router.include_router(digital_state_router)
