@@ -1,4 +1,13 @@
-import { AgentState, IntentSource, IntentType } from './enums';
+import { AgentState, IntentSource, IntentType, WakeUpSource } from './enums';
+
+export type CapabilityStatus = 'supported' | 'simulation' | 'unavailable';
+
+export interface WakeUpCapabilities {
+  alwaysListening: CapabilityStatus;
+  screenCapture: CapabilityStatus;
+  gestureSupport: CapabilityStatus;
+  platformMode: 'expo_go' | 'native_android' | 'web';
+}
 
 export interface Intent {
   name: IntentType;
@@ -9,10 +18,13 @@ export interface Intent {
 }
 
 export interface WakeUpEvent {
-  eventId: string;
-  triggerType: IntentSource;
+  source: WakeUpSource;
   timestamp: string;
+  sessionId: string;
   payload?: Record<string, any>;
+  capabilities: WakeUpCapabilities;
+  eventId?: string; // backward-compat alias
+  triggerType?: IntentSource; // backward-compat alias
 }
 
 export interface Session {

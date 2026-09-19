@@ -1,6 +1,7 @@
 from .enums import (
     AgentState,
     IntentSource,
+    WakeUpSource,
     IntentType,
     RealityState,
     DriftType,
@@ -23,6 +24,7 @@ __all__ = [
     # Enums
     "AgentState",
     "IntentSource",
+    "WakeUpSource",
     "IntentType",
     "RealityState",
     "DriftType",

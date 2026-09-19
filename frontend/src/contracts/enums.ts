@@ -24,6 +24,13 @@ export enum IntentSource {
   MANUAL_TEXT = 'MANUAL_TEXT',
 }
 
+export enum WakeUpSource {
+  WAKE_WORD = 'WAKE_WORD',
+  ORB = 'ORB',
+  MIND_PULSE = 'MIND_PULSE',
+  APP_ICON = 'APP_ICON',
+}
+
 export enum IntentType {
   CHECK_REALITY = 'CHECK_REALITY',
   EXTRACT_COMMITMENTS = 'EXTRACT_COMMITMENTS',

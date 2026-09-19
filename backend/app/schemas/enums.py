@@ -24,6 +24,14 @@ class IntentSource(str, Enum):
     MANUAL_TEXT = "MANUAL_TEXT"
 
 
+class WakeUpSource(str, Enum):
+    """The 4 unified activation entry points."""
+    WAKE_WORD = "WAKE_WORD"
+    ORB = "ORB"
+    MIND_PULSE = "MIND_PULSE"
+    APP_ICON = "APP_ICON"
+
+
 class IntentType(str, Enum):
     """Recognized user intentions."""
     CHECK_REALITY = "CHECK_REALITY"
