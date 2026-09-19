@@ -3,14 +3,14 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { colors, radii, spacing, typography } from '../theme/tokens';
 
 interface SettingsEntryProps {
-  backendTarget: string;
-  resolvedUrl: string;
+  backendTarget?: string;
+  resolvedUrl?: string;
   onPress: () => void;
 }
 
 export const SettingsEntry: React.FC<SettingsEntryProps> = ({
-  backendTarget,
-  resolvedUrl,
+  backendTarget = 'local_lan',
+  resolvedUrl = 'http://localhost:8000',
   onPress,
 }) => {
   return (

@@ -6,11 +6,13 @@ import { AgentState } from '../contracts/enums';
 interface AgentStateIndicatorProps {
   state: AgentState;
   statusMessage?: string;
+  customLabel?: string;
 }
 
 export const AgentStateIndicator: React.FC<AgentStateIndicatorProps> = ({
   state,
   statusMessage,
+  customLabel,
 }) => {
   const getIndicatorColor = () => {
     switch (state) {
@@ -38,9 +40,9 @@ export const AgentStateIndicator: React.FC<AgentStateIndicatorProps> = ({
           {state}
         </Text>
       </View>
-      {statusMessage ? (
+      {customLabel || statusMessage ? (
         <Text style={styles.messageText} numberOfLines={2}>
-          {statusMessage}
+          {customLabel || statusMessage}
         </Text>
       ) : null}
     </View>

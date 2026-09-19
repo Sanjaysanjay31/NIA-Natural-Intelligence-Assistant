@@ -15,6 +15,7 @@ interface SafeActionGateModalProps {
   action: ProposedAction | null;
   onApprove: (action: ProposedAction) => void;
   onReject: (action: ProposedAction, reason: string) => void;
+  onReviewEvidence?: () => void;
   onClose: () => void;
 }
 
@@ -23,6 +24,7 @@ export const SafeActionGateModal: React.FC<SafeActionGateModalProps> = ({
   action,
   onApprove,
   onReject,
+  onReviewEvidence,
   onClose,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -122,8 +124,16 @@ export const SafeActionGateModal: React.FC<SafeActionGateModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {onReviewEvidence && (
+            <TouchableOpacity style={styles.cancelBtn} onPress={onReviewEvidence}>
+              <Text style={[styles.cancelBtnText, { color: colors.primary.cyan }]}>
+                Review Evidence
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelBtnText}>Review Later</Text>
+            <Text style={styles.cancelBtnText}>Dismiss</Text>
           </TouchableOpacity>
         </View>
       </View>

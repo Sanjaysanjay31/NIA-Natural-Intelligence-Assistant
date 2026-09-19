@@ -1,45 +1,92 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { AgentState } from '../contracts/enums';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { AgentState, WakeUpSource } from '../contracts/enums';
 import { DriftResult } from '../contracts/reality';
+import { ProposedAction } from '../contracts/action';
+import {
+  agentSessionStore,
+  SessionEvent,
+  ResponseHierarchy,
+} from './agentSessionStore';
 
 interface AgentContextType {
   state: AgentState;
   statusMessage: string;
   activeDrift: DriftResult | null;
+  activeAction: ProposedAction | null;
+  responseHierarchy: ResponseHierarchy | null;
+  isLoading: boolean;
+  error: string | null;
+  events: SessionEvent[];
+  sessionId: string;
+  startVerification: (source?: WakeUpSource) => Promise<void>;
+  approveAction: () => Promise<boolean>;
+  rejectAction: () => Promise<void>;
+  cancel: () => void;
+  retry: () => void;
+  replaySession: () => Promise<void>;
   transitionTo: (nextState: AgentState, message?: string) => void;
   setActiveDrift: (drift: DriftResult | null) => void;
   resetToIdle: () => void;
 }
 
-const defaultStatusMessages: Record<AgentState, string> = {
-  [AgentState.IDLE]: 'NIA Reality Layer Active',
-  [AgentState.LISTENING]: 'Listening for physical or digital updates...',
-  [AgentState.THINKING]: 'Cross-referencing digital ground truth...',
-  [AgentState.VERIFYING]: 'Analyzing sensor observations...',
-  [AgentState.DRIFT]: 'Reality Drift Detected: Immediate Review Advised',
-  [AgentState.VERIFIED]: 'Ground Truth Verified & Aligned',
-  [AgentState.SPEAKING]: 'Relaying reality audit...',
-  [AgentState.ACTION_PENDING]: 'Safe Action Gate: Approval Required',
-  [AgentState.SUCCESS]: 'Action Safely Dispatched and Recorded',
-  [AgentState.ERROR]: 'Perception Anomaly Encountered',
-};
-
 const AgentContext = createContext<AgentContextType | undefined>(undefined);
 
 export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AgentState>(AgentState.IDLE);
-  const [statusMessage, setStatusMessage] = useState<string>(defaultStatusMessages[AgentState.IDLE]);
-  const [activeDrift, setActiveDrift] = useState<DriftResult | null>(null);
+  const [state, setState] = useState<AgentState>(agentSessionStore.getState());
+  const [statusMessage, setStatusMessage] = useState<string>(agentSessionStore.getStatusMessage());
+  const [activeDrift, setActiveDrift] = useState<DriftResult | null>(agentSessionStore.getActiveDrift());
+  const [activeAction, setActiveAction] = useState<ProposedAction | null>(agentSessionStore.getActiveAction());
+  const [responseHierarchy, setResponseHierarchy] = useState<ResponseHierarchy | null>(agentSessionStore.getResponseHierarchy());
+  const [isLoading, setIsLoading] = useState<boolean>(agentSessionStore.getIsLoading());
+  const [error, setError] = useState<string | null>(agentSessionStore.getError());
+  const [events, setEvents] = useState<SessionEvent[]>(agentSessionStore.getEvents());
+  const [sessionId, setSessionId] = useState<string>(agentSessionStore.getSessionId());
+
+  useEffect(() => {
+    const unsubscribe = agentSessionStore.subscribe(() => {
+      setState(agentSessionStore.getState());
+      setStatusMessage(agentSessionStore.getStatusMessage());
+      setActiveDrift(agentSessionStore.getActiveDrift());
+      setActiveAction(agentSessionStore.getActiveAction());
+      setResponseHierarchy(agentSessionStore.getResponseHierarchy());
+      setIsLoading(agentSessionStore.getIsLoading());
+      setError(agentSessionStore.getError());
+      setEvents(agentSessionStore.getEvents());
+      setSessionId(agentSessionStore.getSessionId());
+    });
+    return unsubscribe;
+  }, []);
+
+  const startVerification = async (source: WakeUpSource = WakeUpSource.ORB) => {
+    await agentSessionStore.runVerificationFlow(source);
+  };
+
+  const approveAction = async () => {
+    return agentSessionStore.approveAndExecuteAction();
+  };
+
+  const rejectAction = async () => {
+    await agentSessionStore.rejectAction();
+  };
+
+  const cancel = () => {
+    agentSessionStore.cancel();
+  };
+
+  const retry = () => {
+    agentSessionStore.runVerificationFlow(WakeUpSource.ORB);
+  };
+
+  const replaySession = async () => {
+    await agentSessionStore.replaySession();
+  };
 
   const transitionTo = (nextState: AgentState, customMessage?: string) => {
-    setState(nextState);
-    setStatusMessage(customMessage || defaultStatusMessages[nextState]);
+    agentSessionStore.transitionTo(nextState, customMessage);
   };
 
   const resetToIdle = () => {
-    setState(AgentState.IDLE);
-    setStatusMessage(defaultStatusMessages[AgentState.IDLE]);
-    setActiveDrift(null);
+    agentSessionStore.resetToIdle();
   };
 
   return (
@@ -48,6 +95,18 @@ export const AgentProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         state,
         statusMessage,
         activeDrift,
+        activeAction,
+        responseHierarchy,
+        isLoading,
+        error,
+        events,
+        sessionId,
+        startVerification,
+        approveAction,
+        rejectAction,
+        cancel,
+        retry,
+        replaySession,
         transitionTo,
         setActiveDrift,
         resetToIdle,

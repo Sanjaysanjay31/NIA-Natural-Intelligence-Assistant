@@ -54,6 +54,22 @@ export class ActionService {
     }
     return res.json();
   }
+
+  async approveAndExecute(actionId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const result = await this.approveAction(actionId);
+      return {
+        success: result.executionStatus === 'SUCCEEDED' || result.approvalState === 'APPROVED' as any,
+        message: result.auditSummary,
+      };
+    } catch (e: any) {
+      return { success: false, message: e?.message || 'Approval execution failed' };
+    }
+  }
+
+  async reject(actionId: string, reason: string = 'Rejected by user'): Promise<ProposedAction> {
+    return this.rejectAction(actionId, reason);
+  }
 }
 
 export const actionService = new ActionService();
