@@ -386,3 +386,124 @@ async def test_repository_list_filtering_and_ordering():
     assert loc_items[0].id == "cmt-3"
 
 
+# --- Commitment API Endpoint Tests ---
+
+from fastapi.testclient import TestClient
+from app.main import app
+from app.modules.commitments.repository import commitment_repository
+
+
+@pytest.fixture(autouse=True)
+def clean_repository():
+    commitment_repository.clear()
+    yield
+    commitment_repository.clear()
+
+
+def test_api_extract_commitments():
+    client = TestClient(app)
+    payload = {
+        "transcript": "I will prepare the presentation slides by Friday.",
+        "source": "VOICE_MEMO",
+        "currentUserName": "Bhupathi"
+    }
+    response = client.post("/api/v1/commitments/extract", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["extractionCount"] == 1
+    assert data["commitments"][0]["owner"] == "Bhupathi"
+    assert "Prepare the presentation slides" in data["commitments"][0]["action"]
+
+
+def test_api_crud_and_status_transitions():
+    client = TestClient(app)
+
+    # 1. Create Commitment
+    new_cmt = {
+        "id": "cmt-api-101",
+        "owner": "Sanjay",
+        "action": "Sync ground truth database",
+        "deadline": "tomorrow 3 PM",
+        "source": "VOICE_MEMO",
+        "status": "PENDING",
+        "confidence": 0.95
+    }
+    create_resp = client.post("/api/v1/commitments", json=new_cmt)
+    assert create_resp.status_code == 201
+    created_body = create_resp.json()
+    assert created_body["id"] == "cmt-api-101"
+    assert created_body["status"] == "PENDING"
+
+    # Duplicate create fails with 409
+    dup_resp = client.post("/api/v1/commitments", json=new_cmt)
+    assert dup_resp.status_code == 409
+
+    # 2. Get Commitment
+    get_resp = client.get("/api/v1/commitments/cmt-api-101")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["action"] == "Sync ground truth database"
+
+    # Get non-existent returns 404
+    not_found = client.get("/api/v1/commitments/non-existent-id")
+    assert not_found.status_code == 404
+
+    # 3. List Commitments with query filters
+    list_resp = client.get("/api/v1/commitments?owner=Sanjay&status=PENDING")
+    assert list_resp.status_code == 200
+    items = list_resp.json()
+    assert len(items) == 1
+    assert items[0]["id"] == "cmt-api-101"
+
+    # 4. Partial Update
+    patch_resp = client.patch(
+        "/api/v1/commitments/cmt-api-101",
+        json={"deadline": "Monday 9 AM"}
+    )
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["deadline"] == "Monday 9 AM"
+
+    # 5. Link event and location
+    link_resp = client.patch(
+        "/api/v1/commitments/cmt-api-101/link",
+        json={
+            "commitmentId": "cmt-api-101",
+            "relatedEventId": "evt-calendar-404",
+            "relatedLocation": "Room 302"
+        }
+    )
+    assert link_resp.status_code == 200
+    assert link_resp.json()["relatedEventId"] == "evt-calendar-404"
+    assert link_resp.json()["relatedLocation"] == "Room 302"
+
+    # 6. Status Update (valid: PENDING -> IN_PROGRESS -> COMPLETED)
+    status_resp1 = client.patch(
+        "/api/v1/commitments/cmt-api-101/status",
+        json={"status": "IN_PROGRESS"}
+    )
+    assert status_resp1.status_code == 200
+    assert status_resp1.json()["status"] == "IN_PROGRESS"
+
+    status_resp2 = client.patch(
+        "/api/v1/commitments/cmt-api-101/status",
+        json={"status": "COMPLETED"}
+    )
+    assert status_resp2.status_code == 200
+    assert status_resp2.json()["status"] == "COMPLETED"
+
+    # 7. Invalid status transition from terminal COMPLETED -> PENDING returns 400
+    invalid_status = client.patch(
+        "/api/v1/commitments/cmt-api-101/status",
+        json={"status": "PENDING"}
+    )
+    assert invalid_status.status_code == 400
+
+    # 8. Delete Commitment
+    del_resp = client.delete("/api/v1/commitments/cmt-api-101")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["success"] is True
+
+    # 9. Verify gone
+    assert client.get("/api/v1/commitments/cmt-api-101").status_code == 404
+
+
+

@@ -8,6 +8,7 @@ from app.api.digital_state import router as digital_state_router
 from app.api.office_kit import router as office_kit_router
 from app.api.settings import router as settings_router
 from app.api.demo import router as demo_router
+from app.modules.commitments.router import router as commitments_router
 
 api_router = APIRouter(prefix=settings.API_V1_STR)
 
@@ -34,3 +35,6 @@ api_router.include_router(settings_router)
 
 # Mount Deterministic Demo Mode router
 api_router.include_router(demo_router)
+
+# Mount Commitment Intelligence router
+api_router.include_router(commitments_router)
