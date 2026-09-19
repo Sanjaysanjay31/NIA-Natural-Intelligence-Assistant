@@ -1,12 +1,15 @@
 /**
- * Shared NIA Domain Contracts
- * Note: Comprehensive domain types will be fully expanded in Prompt 2.
+ * NIA Shared Domain Contracts - TypeScript Entry Point
+ * Mirrors backend/app/schemas/ exactly to provide single source of truth across platform.
  */
 
-export interface SystemHealth {
-  status: string;
-  appName: string;
-  version: string;
-  environment: string;
-  timestamp: string;
-}
+export * from './enums';
+export * from './intent';
+export * from './observation';
+export * from './evidence';
+export * from './impact';
+export * from './action';
+export * from './commitment';
+export * from './timeline';
+export * from './reality';
+export * from './response';
