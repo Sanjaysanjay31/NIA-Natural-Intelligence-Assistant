@@ -584,5 +584,109 @@ async def test_reality_adapter_event_and_location_lookup():
     assert "at_risk_marked_at" in at_risk_c1.metadata
 
 
+# --- Commitment Follow-Up Proposals Tests ---
+
+from app.modules.commitments.proposals import CommitmentFollowUpService
+
+
+def test_followup_proposal_for_pending_with_deadline():
+    service = CommitmentFollowUpService()
+    cmt = Commitment(
+        id="cmt-prop-1",
+        owner="current_user",
+        action="Submit presentation slides",
+        deadline="Friday",
+        status=CommitmentStatus.PENDING,
+    )
+    proposal = service.generate_proposal(cmt)
+    assert proposal is not None
+    assert proposal.commitment_id == "cmt-prop-1"
+    assert proposal.requires_approval is True
+    assert "Friday" in proposal.message
+    assert "Friday" in proposal.reason
+    assert "submit presentation slides" in proposal.message.lower()
+
+
+def test_followup_proposal_for_missing_deadline():
+    service = CommitmentFollowUpService()
+    cmt = Commitment(
+        id="cmt-prop-2",
+        owner="current_user",
+        action="Complete the test suite",
+        deadline=None,  # missing deadline
+        status=CommitmentStatus.PENDING,
+    )
+    proposal = service.generate_proposal(cmt)
+    assert proposal is not None
+    # Must NOT invent any deadline!
+    assert proposal.suggested_trigger_time is None
+    assert "Friday" not in proposal.message
+    assert "open commitment" in proposal.message.lower()
+
+
+def test_followup_proposal_for_completed_and_cancelled_returns_none():
+    service = CommitmentFollowUpService()
+    completed_cmt = Commitment(
+        id="cmt-prop-3",
+        owner="Sanjay",
+        action="Deliver design mockups",
+        deadline="Yesterday",
+        status=CommitmentStatus.COMPLETED,
+    )
+    assert service.generate_proposal(completed_cmt) is None
+
+    cancelled_cmt = Commitment(
+        id="cmt-prop-4",
+        owner="Sanjay",
+        action="Attend optional briefing",
+        deadline="Tomorrow",
+        status=CommitmentStatus.CANCELLED,
+    )
+    assert service.generate_proposal(cancelled_cmt) is None
+
+
+def test_followup_proposal_for_at_risk_commitment():
+    service = CommitmentFollowUpService()
+    cmt = Commitment(
+        id="cmt-prop-5",
+        owner="Sanjay",
+        action="Present the quarterly update",
+        deadline="Friday 9 AM",
+        status=CommitmentStatus.AT_RISK,
+        metadata={"at_risk_reason": "Room 204 unavailable due to maintenance"},
+    )
+    proposal = service.generate_proposal(cmt)
+    assert proposal is not None
+    assert proposal.requires_approval is True
+    assert proposal.action_type == "REVIEW_AT_RISK_COMMITMENT"
+    assert "at risk" in proposal.message.lower()
+    assert "Room 204 unavailable" in proposal.reason
+
+
+def test_followup_proposal_for_changed_location_impact():
+    service = CommitmentFollowUpService()
+    cmt = Commitment(
+        id="cmt-prop-6",
+        owner="Sanjay",
+        action="Present slides",
+        deadline="Friday",
+        related_event_id="Final Presentation",
+        related_location="Room 204",
+        status=CommitmentStatus.PENDING,
+    )
+    impact = {
+        "drift_type": "LOCATION_CHANGED",
+        "new_location": "Room 302",
+        "old_location": "Room 204",
+    }
+    proposal = service.generate_proposal(cmt, impact_context=impact)
+    assert proposal is not None
+    assert proposal.action_type == "ALERT_LOCATION_DRIFT"
+    assert "Room 302" in proposal.message
+    assert "location changed" in proposal.message.lower()
+    assert proposal.requires_approval is True
+
+
+
 
 

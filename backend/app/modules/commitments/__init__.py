@@ -23,7 +23,11 @@ from .repository import (
     CommitmentAlreadyExistsException,
     InvalidStatusTransitionException,
 )
-from .adapter import CommitmentRealityAdapter, commitment_reality_adapter
+from .adapter import (
+    CommitmentRealityAdapter,
+    commitment_reality_adapter,
+)
+from .proposals import CommitmentFollowUpService, commitment_followup_service
 
 __all__ = [
     "CommitmentStatus",
@@ -44,4 +48,6 @@ __all__ = [
     "InvalidStatusTransitionException",
     "CommitmentRealityAdapter",
     "commitment_reality_adapter",
+    "CommitmentFollowUpService",
+    "commitment_followup_service",
 ]
