@@ -23,6 +23,7 @@ from .repository import (
     CommitmentAlreadyExistsException,
     InvalidStatusTransitionException,
 )
+from .adapter import CommitmentRealityAdapter, commitment_reality_adapter
 
 __all__ = [
     "CommitmentStatus",
@@ -41,4 +42,6 @@ __all__ = [
     "CommitmentNotFoundException",
     "CommitmentAlreadyExistsException",
     "InvalidStatusTransitionException",
+    "CommitmentRealityAdapter",
+    "commitment_reality_adapter",
 ]
