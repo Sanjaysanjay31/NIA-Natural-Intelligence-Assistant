@@ -806,6 +806,67 @@ def test_provider_composite_selection_policy():
     assert res2.metadata.get("provider") == "LOCAL_LLM"
 
 
+# --- Additional Extraction & API Edge Cases (Prompt 12) ---
+
+def test_extractor_relative_deadline_next_week():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="I will review the pull request next week.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    assert "next week" in res.commitments[0].deadline.lower()
+
+
+def test_extractor_explicit_time():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="I will call the architect at 5 PM.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    assert "5 PM" in res.commitments[0].deadline
+
+
+def test_extractor_vague_speculative_statement():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="I might look into fixing that bug sometime.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 0
+
+
+def test_extractor_no_commitment_factual_speech():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="The weather is sunny in Bengaluru today.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 0
+
+
+def test_extractor_owner_ambiguity_no_subject():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="Need to deploy the server.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 0
+
+
+def test_extractor_deadline_ambiguity_unanchored():
+    extractor = CommitmentExtractor()
+    req = CommitmentExtractionRequest(transcript="I will complete the audit soon.")
+    res = extractor.extract(req)
+    assert res.extraction_count == 1
+    # "soon" is not a recognized concrete temporal anchor: must NOT fabricate date!
+    assert res.commitments[0].deadline is None
+
+
+def test_api_malformed_payload_returns_422():
+    client = TestClient(app)
+    # Missing required field 'action'
+    malformed_payload = {
+        "id": "cmt-malformed",
+        "owner": "Sanjay",
+        # 'action' missing!
+    }
+    response = client.post("/api/v1/commitments", json=malformed_payload)
+    assert response.status_code == 422
+
+
+
 
 
 
