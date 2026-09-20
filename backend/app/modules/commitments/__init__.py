@@ -1,5 +1,65 @@
-"""Commitments Module (Reserved for Bhupathi)
+"""Commitments Module (Bhupathi 40% Isolated Module)
 
-This package is isolated for Bhupathi's VoiceMemo Pro + Commitment Intelligence implementation.
-Sanjay's core platform code does not modify files within this directory.
+VoiceMemo Pro + Commitment Intelligence domain models, schemas, and services.
 """
+
+from .schemas import (
+    CommitmentStatus,
+    CommitmentSource,
+    CommitmentEvidence,
+    Commitment,
+    CommitmentExtractionRequest,
+    CommitmentExtractionResponse,
+    CommitmentUpdate,
+    CommitmentLinkRequest,
+    FollowUpProposal,
+)
+from .extractor import CommitmentExtractor
+from .repository import (
+    BaseCommitmentRepository,
+    InMemoryCommitmentRepository,
+    commitment_repository,
+    CommitmentNotFoundException,
+    CommitmentAlreadyExistsException,
+    InvalidStatusTransitionException,
+)
+from .adapter import (
+    CommitmentRealityAdapter,
+    commitment_reality_adapter,
+)
+from .proposals import CommitmentFollowUpService, commitment_followup_service
+from .providers import (
+    CommitmentExtractorProvider,
+    RuleBasedCommitmentExtractor,
+    LocalLLMCommitmentExtractor,
+    CompositeCommitmentExtractor,
+    composite_commitment_extractor,
+)
+
+__all__ = [
+    "CommitmentStatus",
+    "CommitmentSource",
+    "CommitmentEvidence",
+    "Commitment",
+    "CommitmentExtractionRequest",
+    "CommitmentExtractionResponse",
+    "CommitmentUpdate",
+    "CommitmentLinkRequest",
+    "FollowUpProposal",
+    "CommitmentExtractor",
+    "BaseCommitmentRepository",
+    "InMemoryCommitmentRepository",
+    "commitment_repository",
+    "CommitmentNotFoundException",
+    "CommitmentAlreadyExistsException",
+    "InvalidStatusTransitionException",
+    "CommitmentRealityAdapter",
+    "commitment_reality_adapter",
+    "CommitmentFollowUpService",
+    "commitment_followup_service",
+    "CommitmentExtractorProvider",
+    "RuleBasedCommitmentExtractor",
+    "LocalLLMCommitmentExtractor",
+    "CompositeCommitmentExtractor",
+    "composite_commitment_extractor",
+]
