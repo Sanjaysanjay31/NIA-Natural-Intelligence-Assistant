@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any
 from app.modules.commitments.schemas import (
     Commitment,
     CommitmentStatus,
@@ -7,6 +7,10 @@ from app.modules.commitments.schemas import (
     CommitmentExtractionResponse,
 )
 from app.modules.commitments.extractor import CommitmentExtractor
+from app.modules.commitments.providers import (
+    CommitmentExtractorProvider,
+    composite_commitment_extractor,
+)
 from app.modules.commitments.repository import (
     BaseCommitmentRepository,
     commitment_repository,
@@ -19,10 +23,10 @@ class CommitmentService:
     def __init__(
         self,
         repository: Optional[BaseCommitmentRepository] = None,
-        extractor: Optional[CommitmentExtractor] = None,
+        extractor: Optional[Any] = None,
     ):
         self.repository = repository or commitment_repository
-        self.extractor = extractor or CommitmentExtractor()
+        self.extractor = extractor or composite_commitment_extractor
 
     def extract_commitments(self, request: CommitmentExtractionRequest) -> CommitmentExtractionResponse:
         """Extracts structured commitments deterministically from transcript text."""

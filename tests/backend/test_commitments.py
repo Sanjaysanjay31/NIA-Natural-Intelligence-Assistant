@@ -687,6 +687,126 @@ def test_followup_proposal_for_changed_location_impact():
     assert proposal.requires_approval is True
 
 
+# --- Local LLM & Provider Tests ---
+
+import json
+from app.modules.commitments.providers import (
+    RuleBasedCommitmentExtractor,
+    LocalLLMCommitmentExtractor,
+    CompositeCommitmentExtractor,
+)
+
+
+def test_provider_rule_based_always_available():
+    provider = RuleBasedCommitmentExtractor()
+    assert provider.is_available is True
+    assert provider.provider_type == "RULE_BASED"
+    req = CommitmentExtractionRequest(transcript="I will send the report by Monday.")
+    res = provider.extract(req)
+    assert res.extraction_count == 1
+    assert res.metadata.get("provider") == "RULE_BASED"
+
+
+def test_provider_local_llm_unavailable_fallback():
+    provider = LocalLLMCommitmentExtractor(available=False)
+    assert provider.is_available is False
+    req = CommitmentExtractionRequest(transcript="I will submit the slides by Friday.")
+    res = provider.extract(req)
+    assert res.extraction_count == 1
+    assert res.metadata.get("fallback_reason") == "LOCAL_LLM_UNAVAILABLE"
+
+
+def test_provider_local_llm_valid_output():
+    valid_llm_json = json.dumps([
+        {
+            "id": "cmt-llm-1",
+            "owner": "Bhupathi",
+            "action": "Deploy isolated VoiceMemo Pro",
+            "deadline": "Friday 5 PM",
+            "source": "VOICE_MEMO",
+            "status": "PENDING",
+            "confidence": 0.94
+        }
+    ])
+    provider = LocalLLMCommitmentExtractor(
+        llm_callable=lambda prompt: valid_llm_json,
+        available=True
+    )
+    assert provider.is_available is True
+    req = CommitmentExtractionRequest(transcript="I will deploy isolated VoiceMemo Pro by Friday 5 PM.")
+    res = provider.extract(req)
+    assert res.extraction_count == 1
+    assert res.commitments[0].owner == "Bhupathi"
+    assert res.metadata.get("provider") == "LOCAL_LLM"
+    assert res.metadata.get("validated") is True
+
+
+def test_provider_local_llm_malformed_json_fallback():
+    provider = LocalLLMCommitmentExtractor(
+        llm_callable=lambda prompt: "MALFORMED NON-JSON TEXT",
+        available=True
+    )
+    req = CommitmentExtractionRequest(transcript="I will prepare the deployment checklist by tomorrow.")
+    res = provider.extract(req)
+    # Automatically fell back to rule-based extractor!
+    assert res.extraction_count == 1
+    assert "LLM_VALIDATION_ERROR" in res.metadata.get("fallback_reason", "")
+    assert "Prepare the deployment checklist" in res.commitments[0].action
+
+
+def test_provider_local_llm_schema_violation_fallback():
+    # Schema violation: confidence out of bounds (> 1.0) and blank action
+    invalid_schema_json = json.dumps([
+        {
+            "id": "cmt-bad",
+            "owner": "User",
+            "action": "",  # invalid blank action
+            "confidence": 2.5  # invalid > 1.0
+        }
+    ])
+    provider = LocalLLMCommitmentExtractor(
+        llm_callable=lambda prompt: invalid_schema_json,
+        available=True
+    )
+    req = CommitmentExtractionRequest(transcript="I will finish the audit report by Friday.")
+    res = provider.extract(req)
+    # Falls back to rule-based
+    assert res.extraction_count == 1
+    assert "LLM_VALIDATION_ERROR" in res.metadata.get("fallback_reason", "")
+    assert "Finish the audit report" in res.commitments[0].action
+
+
+def test_provider_composite_selection_policy():
+    rule = RuleBasedCommitmentExtractor()
+    llm = LocalLLMCommitmentExtractor(available=False)
+    composite = CompositeCommitmentExtractor(rule_extractor=rule, local_llm_extractor=llm)
+
+    # When LLM unavailable -> uses rule-based
+    assert "RULE_BASED" in composite.provider_type
+    res1 = composite.extract(CommitmentExtractionRequest(transcript="I will call the client tomorrow."))
+    assert res1.extraction_count == 1
+
+    # When LLM available -> uses LLM
+    llm_output = json.dumps([{
+        "id": "cmt-c-1",
+        "owner": "Priya",
+        "action": "Sync database replicas",
+        "deadline": "tomorrow",
+        "source": "CONVERSATION",
+        "status": "PENDING",
+        "confidence": 0.90
+    }])
+    llm.set_llm_callable(lambda prompt: llm_output)
+    llm.set_availability(True)
+
+    assert "LOCAL_LLM" in composite.provider_type
+    res2 = composite.extract(CommitmentExtractionRequest(transcript="Priya will sync database replicas tomorrow."))
+    assert res2.extraction_count == 1
+    assert res2.commitments[0].owner == "Priya"
+    assert res2.metadata.get("provider") == "LOCAL_LLM"
+
+
+
 
 
 

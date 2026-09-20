@@ -28,6 +28,13 @@ from .adapter import (
     commitment_reality_adapter,
 )
 from .proposals import CommitmentFollowUpService, commitment_followup_service
+from .providers import (
+    CommitmentExtractorProvider,
+    RuleBasedCommitmentExtractor,
+    LocalLLMCommitmentExtractor,
+    CompositeCommitmentExtractor,
+    composite_commitment_extractor,
+)
 
 __all__ = [
     "CommitmentStatus",
@@ -50,4 +57,9 @@ __all__ = [
     "commitment_reality_adapter",
     "CommitmentFollowUpService",
     "commitment_followup_service",
+    "CommitmentExtractorProvider",
+    "RuleBasedCommitmentExtractor",
+    "LocalLLMCommitmentExtractor",
+    "CompositeCommitmentExtractor",
+    "composite_commitment_extractor",
 ]
