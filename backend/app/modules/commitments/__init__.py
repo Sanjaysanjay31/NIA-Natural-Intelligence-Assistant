@@ -15,6 +15,14 @@ from .schemas import (
     FollowUpProposal,
 )
 from .extractor import CommitmentExtractor
+from .repository import (
+    BaseCommitmentRepository,
+    InMemoryCommitmentRepository,
+    commitment_repository,
+    CommitmentNotFoundException,
+    CommitmentAlreadyExistsException,
+    InvalidStatusTransitionException,
+)
 
 __all__ = [
     "CommitmentStatus",
@@ -27,4 +35,10 @@ __all__ = [
     "CommitmentLinkRequest",
     "FollowUpProposal",
     "CommitmentExtractor",
+    "BaseCommitmentRepository",
+    "InMemoryCommitmentRepository",
+    "commitment_repository",
+    "CommitmentNotFoundException",
+    "CommitmentAlreadyExistsException",
+    "InvalidStatusTransitionException",
 ]

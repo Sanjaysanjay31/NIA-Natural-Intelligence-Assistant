@@ -276,3 +276,113 @@ def test_extractor_negative_past_tense_disqualified():
     res2 = extractor.extract(CommitmentExtractionRequest(transcript="I sent the email already."))
     assert res2.extraction_count == 0
 
+
+# --- Commitment Repository Unit Tests ---
+
+from app.modules.commitments.repository import (
+    InMemoryCommitmentRepository,
+    CommitmentNotFoundException,
+    CommitmentAlreadyExistsException,
+    InvalidStatusTransitionException,
+)
+
+
+@pytest.mark.asyncio
+async def test_repository_crud_lifecycle():
+    repo = InMemoryCommitmentRepository()
+    cmt = Commitment(
+        id="cmt-repo-1",
+        owner="Sanjay",
+        action="Complete VEYRA X integration",
+        deadline="Friday",
+    )
+
+    # 1. Create
+    created = await repo.create(cmt)
+    assert created.id == "cmt-repo-1"
+    assert created.status == CommitmentStatus.PENDING
+
+    # 2. Prevent duplicate ID
+    with pytest.raises(CommitmentAlreadyExistsException):
+        await repo.create(cmt)
+
+    # 3. Get
+    fetched = await repo.get("cmt-repo-1")
+    assert fetched is not None
+    assert fetched.action == "Complete VEYRA X integration"
+
+    # 4. Update (partial)
+    updated = await repo.update("cmt-repo-1", CommitmentUpdate(deadline="Monday 10 AM"))
+    assert updated.deadline == "Monday 10 AM"
+
+    # 5. Link to event & location
+    linked_event = await repo.link_to_event("cmt-repo-1", "evt-hackathon-01")
+    assert linked_event.related_event_id == "evt-hackathon-01"
+
+    linked_loc = await repo.link_to_location("cmt-repo-1", "Room 302")
+    assert linked_loc.related_location == "Room 302"
+
+    # 6. Mark at risk
+    at_risk = await repo.mark_at_risk("cmt-repo-1", reason="Room changed unexpectedly")
+    assert at_risk.status == CommitmentStatus.AT_RISK
+    assert at_risk.metadata.get("at_risk_reason") == "Room changed unexpectedly"
+
+    # 7. Update status to COMPLETED
+    completed = await repo.update_status("cmt-repo-1", CommitmentStatus.COMPLETED)
+    assert completed.status == CommitmentStatus.COMPLETED
+
+    # 8. Delete
+    deleted = await repo.delete("cmt-repo-1")
+    assert deleted is True
+
+    # 9. Get after delete returns None
+    assert await repo.get("cmt-repo-1") is None
+
+    # 10. Delete non-existent raises not found
+    with pytest.raises(CommitmentNotFoundException):
+        await repo.delete("cmt-repo-1")
+
+
+@pytest.mark.asyncio
+async def test_repository_status_transitions_and_invariants():
+    repo = InMemoryCommitmentRepository()
+    cmt = Commitment(id="cmt-trans-1", owner="Bhupathi", action="Write tests")
+    await repo.create(cmt)
+
+    # PENDING -> IN_PROGRESS is valid
+    await repo.update_status("cmt-trans-1", CommitmentStatus.IN_PROGRESS)
+    # IN_PROGRESS -> COMPLETED is valid
+    await repo.update_status("cmt-trans-1", CommitmentStatus.COMPLETED)
+
+    # COMPLETED is terminal; COMPLETED -> PENDING should fail
+    with pytest.raises(InvalidStatusTransitionException):
+        await repo.update_status("cmt-trans-1", CommitmentStatus.PENDING)
+
+
+@pytest.mark.asyncio
+async def test_repository_list_filtering_and_ordering():
+    repo = InMemoryCommitmentRepository()
+    c1 = Commitment(id="cmt-1", owner="Alice", action="Task 1", status=CommitmentStatus.PENDING)
+    c2 = Commitment(id="cmt-2", owner="Bob", action="Task 2", status=CommitmentStatus.COMPLETED)
+    c3 = Commitment(id="cmt-3", owner="Alice", action="Task 3", status=CommitmentStatus.IN_PROGRESS, related_location="Room 101")
+
+    await repo.create(c1)
+    await repo.create(c2)
+    await repo.create(c3)
+
+    # Filter by owner
+    alice_items = await repo.list(owner="Alice")
+    assert len(alice_items) == 2
+    assert all(c.owner == "Alice" for c in alice_items)
+
+    # Filter by status
+    completed_items = await repo.list(status=CommitmentStatus.COMPLETED)
+    assert len(completed_items) == 1
+    assert completed_items[0].id == "cmt-2"
+
+    # Filter by location
+    loc_items = await repo.list(related_location="Room 101")
+    assert len(loc_items) == 1
+    assert loc_items[0].id == "cmt-3"
+
+
