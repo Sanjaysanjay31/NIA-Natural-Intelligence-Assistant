@@ -506,4 +506,83 @@ def test_api_crud_and_status_transitions():
     assert client.get("/api/v1/commitments/cmt-api-101").status_code == 404
 
 
+# --- Commitment Reality Graph Adapter Tests ---
+
+from app.modules.commitments.adapter import CommitmentRealityAdapter
+
+
+@pytest.mark.asyncio
+async def test_reality_adapter_event_and_location_lookup():
+    repo = InMemoryCommitmentRepository()
+    adapter = CommitmentRealityAdapter(repository=repo)
+
+    c1 = Commitment(
+        id="cmt-adap-1",
+        owner="Sanjay",
+        action="Submit presentation slides by Friday",
+        deadline="Friday",
+        related_event_id="Final Presentation",
+        related_location="Room 204",
+    )
+    c2 = Commitment(
+        id="cmt-adap-2",
+        owner="Bhupathi",
+        action="Bring projector HDMI cable",
+        deadline="Friday 8:30 AM",
+        related_event_id="Final Presentation",
+        related_location="Room 204",
+    )
+    c3 = Commitment(
+        id="cmt-adap-3",
+        owner="Alice",
+        action="Prepare quarterly sales forecast",
+        related_event_id="Quarterly Review",
+        related_location="Boardroom B",
+    )
+
+    await repo.create(c1)
+    await repo.create(c2)
+    await repo.create(c3)
+
+    # 1. Event Lookup
+    event_commitments = await adapter.get_commitments_for_event("Final Presentation")
+    assert len(event_commitments) == 2
+    ids = {c.id for c in event_commitments}
+    assert ids == {"cmt-adap-1", "cmt-adap-2"}
+
+    # 2. Location Lookup
+    loc_commitments = await adapter.get_commitments_for_location("Room 204")
+    assert len(loc_commitments) == 2
+
+    # 3. Entity Lookup (checks event, location, metadata)
+    entity_matches = await adapter.get_commitments_for_entity("Final Presentation")
+    assert len(entity_matches) == 2
+
+    loc_matches = await adapter.get_commitments_for_entity("Boardroom B")
+    assert len(loc_matches) == 1
+    assert loc_matches[0].id == "cmt-adap-3"
+
+    # 4. Missing Entity
+    assert await adapter.get_commitments_for_entity("NonExistentEntity") == []
+    assert await adapter.get_commitments_for_event("NonExistentEvent") == []
+    assert await adapter.get_commitments_for_location("NonExistentRoom") == []
+
+    # 5. Dynamic Linking
+    await adapter.link_commitment_to_event("cmt-adap-3", "Annual All-Hands")
+    updated_c3 = await repo.get("cmt-adap-3")
+    assert updated_c3.related_event_id == "Annual All-Hands"
+
+    await adapter.link_commitment_to_location("cmt-adap-3", "Main Auditorium")
+    updated_c3_loc = await repo.get("cmt-adap-3")
+    assert updated_c3_loc.related_location == "Main Auditorium"
+
+    # 6. Mark At Risk and Preserve Reason
+    drift_reason = "Reality Drift: Final Presentation location moved from Room 204 to Room 302"
+    at_risk_c1 = await adapter.mark_at_risk("cmt-adap-1", reason=drift_reason)
+    assert at_risk_c1.status == CommitmentStatus.AT_RISK
+    assert at_risk_c1.metadata.get("at_risk_reason") == drift_reason
+    assert "at_risk_marked_at" in at_risk_c1.metadata
+
+
+
 
