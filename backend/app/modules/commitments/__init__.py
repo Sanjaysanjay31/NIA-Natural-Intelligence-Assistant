@@ -1,5 +1,28 @@
-"""Commitments Module (Reserved for Bhupathi)
+"""Commitments Module (Bhupathi 40% Isolated Module)
 
-This package is isolated for Bhupathi's VoiceMemo Pro + Commitment Intelligence implementation.
-Sanjay's core platform code does not modify files within this directory.
+VoiceMemo Pro + Commitment Intelligence domain models, schemas, and services.
 """
+
+from .schemas import (
+    CommitmentStatus,
+    CommitmentSource,
+    CommitmentEvidence,
+    Commitment,
+    CommitmentExtractionRequest,
+    CommitmentExtractionResponse,
+    CommitmentUpdate,
+    CommitmentLinkRequest,
+    FollowUpProposal,
+)
+
+__all__ = [
+    "CommitmentStatus",
+    "CommitmentSource",
+    "CommitmentEvidence",
+    "Commitment",
+    "CommitmentExtractionRequest",
+    "CommitmentExtractionResponse",
+    "CommitmentUpdate",
+    "CommitmentLinkRequest",
+    "FollowUpProposal",
+]
